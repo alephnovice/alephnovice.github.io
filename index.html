@@ -2,363 +2,156 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>L-Corp Work Counter</title>
+<title>Lobotomy Corp Stats Calculate</title>
 <style>
-body{
-    background:#0e0e11;
-    color:#e6e6e6;
-    font-family:Segoe UI, sans-serif;
-    margin:0;
-    padding:20px;
-}
-.container{
-    max-width:1050px;
-    margin:auto;
-    background:#1a1a22;
-    padding:25px;
-    border-radius:12px;
-    box-shadow:0 0 30px rgba(255,0,0,0.25);
-}
-h1{
-    text-align:center;
-    color:#ff3c3c;
-    margin-bottom:25px;
-}
-.stat-grid{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:15px;
-}
-.stat-box{
-    background:#2a2a33;
-    padding:12px;
-    border-radius:8px;
-}
-.success{
-    background:#134d2f !important;
-}
-input[type="number"], select{
-    width:100%;
-    padding:6px;
-    margin-top:6px;
-    background:#111;
-    color:white;
-    border:1px solid #444;
-    border-radius:6px;
-}
-.control-panel{
-    margin-top:25px;
-    background:#222;
-    padding:15px;
-    border-radius:8px;
-}
-.tier-buttons{
-    display:flex;
-    gap:8px;
-}
-.tier-buttons button{
-    flex:1;
-    padding:8px;
-    background:#2a2a33;
-    color:white;
-    border:1px solid #444;
-    border-radius:6px;
-    cursor:pointer;
-}
-.tier-buttons button.active{
-    background:#ff3c3c;
-    border-color:#ff3c3c;
-}
-.row{
-    display:flex;
-    gap:15px;
-    margin-top:12px;
-}
-.row div{
-    flex:1;
-}
-table{
-    width:100%;
-    margin-top:25px;
-    border-collapse:collapse;
-}
-th, td{
-    padding:10px;
-    text-align:center;
-    border:1px solid #333;
-}
-th{
-    background:#2a2a33;
-}
-.level-display{
-    font-size:13px;
-    color:#aaa;
-    margin-top:5px;
-}
-.warning{
-    color:#ff4c4c;
-    font-weight:bold;
-}
+    :root { --primary-red: #ff3c3c; --bg-dark: #0e0e11; --panel-bg: #1a1a22; --box-bg: #2a2a33; --accent-blue: #00ffff; }
+    body{ background:var(--bg-dark); color:#e6e6e6; font-family:'Segoe UI', sans-serif; padding:20px; line-height: 1.6; }
+    .container{ max-width:1200px; margin:auto; background:var(--panel-bg); padding:30px; border-radius:15px; box-shadow:0 0 50px rgba(255,0,0,0.4); }
+    h1{ text-align:center; color:var(--primary-red); text-transform:uppercase; margin-bottom:40px; }
+    .stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:20px; margin-bottom:25px; }
+    .stat-box{ background:var(--box-bg); padding:18px; border-radius:10px; border-left:5px solid #444; transition: 0.3s; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+    .stat-box.success{ border-left-color: var(--success-green); background:#134d2f; }
+    input[type="number"], select{ width:100%; padding:10px; margin-top:10px; background:#111; color:white; border:1px solid #444; border-radius:6px; box-sizing: border-box; font-size: 14px; }
+    .control-panel{ background:#222; padding:25px; border-radius:10px; margin-top:25px; border: 1px solid #333; }
+    .tier-buttons{ display:flex; gap:10px; margin-bottom:20px; }
+    .tier-buttons button{ flex:1; padding:12px; background:var(--box-bg); color:white; border:1px solid #444; border-radius:8px; cursor:pointer; font-weight:bold; }
+    .tier-buttons button.active{ background:var(--primary-red); border-color:var(--primary-red); box-shadow: 0 0 15px rgba(255,0,0,0.4); }
+    table{ width:100%; margin-top:30px; border-collapse:collapse; background: #1a1a22; }
+    th, td{ padding:15px; text-align:center; border: 1px solid #333; }
+    th{ color: var(--primary-red); background: #2a2a33; }
+    .warning { color: #ff4c4c; font-weight: bold; animation: blinker 1s linear infinite; }
+    @keyframes blinker { 50% { opacity: 0; } }
+    .calc-details { margin-top: 40px; background: #080808; border: 2px solid #333; border-radius: 12px; padding: 25px; }
+    .step-card { background: #15151c; border: 1px solid #333; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid var(--accent-blue); }
+    .formula { font-family: 'Consolas', monospace; color: #a5d6a7; background: #000; padding: 12px; border-radius: 6px; display: block; margin: 10px 0; border: 1px solid #1b5e20; white-space: pre-wrap; }
+    .highlight { color: var(--accent-blue); font-weight: bold; }
+    .ex-text { color: var(--accent-blue); font-weight: bold; text-shadow: 0 0 10px rgba(0,255,255,0.7); }
+    .sub-step { margin-left: 20px; margin-top: 15px; border-left: 2px solid #222; padding-left: 15px; }
 </style>
 </head>
 <body>
 
 <div class="container">
-<h1>L-Corp Work Counter</h1>
+    <h1>Stats Calculate</h1>
 
-<div class="stat-grid">
-<div class="stat-box" id="fortBox">
-<b>Fortitude</b>
-<input type="number" id="fortCurrent" value="20">
-<d>to</d>
-<input type="number" id="fortGoal" value="0">
-<div id="fortLevel" class="level-display"></div>
-</div>
+    <div class="stat-grid">
+        <div class="stat-box" id="fortBox"><b>Fortitude (HP)</b><input type="number" id="fortCurrent" value="20"><div style="text-align:center; font-size:11px; margin:5px;">to goal</div><input type="number" id="fortGoal" value="100"><div id="fortLevel" style="margin-top:10px; font-size:13px;"></div></div>
+        <div class="stat-box" id="prudBox"><b>Prudence (SP)</b><input type="number" id="prudCurrent" value="20"><div style="text-align:center; font-size:11px; margin:5px;">to goal</div><input type="number" id="prudGoal" value="100"><div id="prudLevel" style="margin-top:10px; font-size:13px;"></div></div>
+        <div class="stat-box" id="tempBox"><b>Temperance (Work)</b><input type="number" id="tempCurrent" value="20"><div style="text-align:center; font-size:11px; margin:5px;">to goal</div><input type="number" id="tempGoal" value="100"><div id="tempLevel" style="margin-top:10px; font-size:13px;"></div></div>
+        <div class="stat-box" id="justBox"><b>Justice (Speed)</b><input type="number" id="justCurrent" value="20"><div style="text-align:center; font-size:11px; margin:5px;">to goal</div><input type="number" id="justGoal" value="100"><div id="justLevel" style="margin-top:10px; font-size:13px;"></div></div>
+    </div>
 
-<div class="stat-box" id="prudBox">
-<b>Prudence</b>
-<input type="number" id="prudCurrent" value="20">
-<d>to</d>
-<input type="number" id="prudGoal" value="0">
-<div id="prudLevel" class="level-display"></div>
-</div>
+    <div class="control-panel">
+        <div class="tier-buttons">
+            <button data-tier="ZAYIN">ZAYIN</button><button data-tier="TETH">TETH</button><button data-tier="HE">HE</button><button data-tier="WAW">WAW</button><button data-tier="ALEPH" class="active">ALEPH</button>
+        </div>
+        <div class="row" style="display:flex; gap:20px;">
+            <div style="flex:1;"><label>Base Success Rate</label><select id="successRate"><option value="0.3">Very Low</option><option value="0.45">Low</option><option value="0.65" selected>Common</option><option value="0.85">High</option><option value="1.0">Very High</option></select></div>
+            <div style="flex:1;"><label>Hod Bonus</label><select id="hodBonus"><option value="0">0</option><option value="2">Lv1</option><option value="4">Lv2</option><option value="6" selected>Lv3 (+6)</option><option value="8">Lv4</option><option value="10">Lv5</option></select></div>
+            <div style="flex:1;"><label>Max PE Box</label><input type="number" id="customMaxPE" value="33"></div>
+        </div>
+        <div style="margin-top:15px;">
+            <label><input type="checkbox" id="researchBonus"> Research (1.5x)</label>
+            <label style="margin:0 20px;"><input type="checkbox" id="riskMode"> Risk Mode (1.3x)</label>
+            <label><input type="checkbox" id="showWorst" checked> Monte Carlo (10k Runs)</label>
+        </div>
+    </div>
 
-<div class="stat-box" id="tempBox">
-<b>Temperance</b>
-<input type="number" id="tempCurrent" value="20">
-<d>to</d>
-<input type="number" id="tempGoal" value="0">
-<div id="tempLevel" class="level-display"></div>
-</div>
+    <table>
+        <thead>
+            <tr><th>Work Type</th><th>Target Stat</th><th>Theoretical</th><th>MC Average</th><th>Worst Case</th><th>Risk</th></tr>
+        </thead>
+        <tbody id="resultTable"></tbody>
+    </table>
 
-<div class="stat-box" id="justBox">
-<b>Justice</b>
-<input type="number" id="justCurrent" value="20">
-<d>to</d>
-<input type="number" id="justGoal" value="0">
-<div id="justLevel" class="level-display"></div>
-</div>
-</div>
-
-<div class="control-panel">
-
-<div class="tier-buttons">
-<button data-tier="ZAYIN">ZAYIN</button>
-<button data-tier="TETH">TETH</button>
-<button data-tier="HE">HE</button>
-<button data-tier="WAW">WAW</button>
-<button data-tier="ALEPH" class="active">ALEPH</button>
-</div>
-
-<div class="row">
-<div>
-<label>Success Rate</label>
-<select id="successRate">
-<option value="0.3">Very Low</option>
-<option value="0.45">Low</option>
-<option value="0.65" selected>Common</option>
-<option value="0.85">High</option>
-<option value="1.0">Very High</option>
-</select>
-</div>
-
-<div>
-<label>Custom Max PE-Box</label>
-<input type="number" id="customMaxPE" value="0">
-</div>
-</div>
-
-<div class="row">
-<div>
-<label><input type="checkbox" id="researchBonus"> Research Bonus (1.5x)</label>
-</div>
-<div>
-<label><input type="checkbox" id="riskMode"> Risk Mode (1.3x)</label>
-</div>
-<div>
-<label><input type="checkbox" id="showWorst"> Show Worst Case</label>
-</div>
-</div>
-
-</div>
-
-<table>
-<thead>
-<tr>
-<th>Work</th>
-<th>Stat</th>
-<th>Sessions Needed (Expected / MC Avg)</th>
-<th>Worst</th>
-<th>Risk</th>
-</tr>
-</thead>
-<tbody id="resultTable"></tbody>
-</table>
-
+    <div class="calc-details">
+        <h3>🔍 Comprehensive Calculation Breakdown</h3>
+        <div id="stepContent"></div>
+    </div>
 </div>
 
 <script>
-
-const tierDefault={ZAYIN:12,TETH:16,HE:20,WAW:24,ALEPH:33};
-
-const levelModifier={
-1:{ZAYIN:1.0,TETH:1.0,HE:1.2,WAW:1.4,ALEPH:1.0},
-2:{ZAYIN:0.8,TETH:1.0,HE:1.0,WAW:1.2,ALEPH:1.4},
-3:{ZAYIN:0.6,TETH:0.8,HE:1.0,WAW:1.0,ALEPH:1.2},
-4:{ZAYIN:0.4,TETH:0.6,HE:0.8,WAW:1.0,ALEPH:1.0},
-5:{ZAYIN:0.2,TETH:0.4,HE:0.6,WAW:0.8,ALEPH:1.0}
-};
-
-function getLevel(stat){
-if(stat<30)return 1;
-if(stat<45)return 2;
-if(stat<65)return 3;
-if(stat<85)return 4;
-return 5;
+const levelModTable={1:{ZAYIN:1,TETH:1,HE:1.2,WAW:1.4,ALEPH:1},2:{ZAYIN:0.8,TETH:1,HE:1,WAW:1.2,ALEPH:1.4},3:{ZAYIN:0.6,TETH:0.8,HE:1,WAW:1,ALEPH:1.2},4:{ZAYIN:0.4,TETH:0.6,HE:0.8,WAW:1,ALEPH:1},5:{ZAYIN:0.2,TETH:0.4,HE:0.6,WAW:0.8,ALEPH:1},6:{ZAYIN:0.2,TETH:0.4,HE:0.6,WAW:0.8,ALEPH:1}};
+function getLevel(s){if(s>=100)return 6;if(s<30)return 1;if(s<45)return 2;if(s<65)return 3;if(s<85)return 4;return 5;}
+function roman(l){if(l===6)return '<span class="ex-text">EX</span>';return ["I","II","III","IV","V"][l-1] || "I";}
+function expNeeded(c,g){let t=0;for(let i=c;i<g;i++)t+=(1+i*0.1);return t;}
+function getExpFormula(c, g) {
+    if (g - c > 4) return `(1 + ${c}*0.1) + (1 + ${(c+1)}*0.1) + ... + (1 + ${(g-1)}*0.1)`;
+    let p = []; for(let i=c; i<g; i++) p.push(`(1 + ${i*0.1})`); return p.join(" + ");
 }
 
-function roman(l){return["I","II","III","IV","V"][l-1];}
-
-function expNeeded(c,g){
-let t=0;
-for(let i=c;i<g;i++) t+=1+(i*0.1);
-return t;
-}
-
-function expectedPE(maxPE, success){
-let good = success;
-let normal = (1-success)*0.7;
-let bad = (1-success)*0.3;
-
-return (good*maxPE) +
-(normal*(maxPE*0.6)) +
-(bad*(maxPE*0.3));
-}
-
-function monteCarloSessionsDetailed(neededExp, maxPE, success, levelMod, research, risk, isJustice){
-
-let runs=10000;
-let total=0;
-let worst=0;
-
-for(let r=0;r<runs;r++){
-
-let gained=0;
-let sessions=0;
-
-while(gained<neededExp && sessions<500){
-
-sessions++;
-let roll=Math.random();
-let pe=0;
-
-if(roll<success){
-pe=maxPE;
-}else if(roll<success+(1-success)*0.7){
-pe=maxPE*0.6;
-}else{
-pe=maxPE*0.3;
-}
-
-pe*=levelMod*research;
-if(isJustice) pe*=0.5;
-else pe*=risk;
-
-gained+=pe;
-}
-
-total+=sessions;
-if(sessions>worst) worst=sessions;
-}
-
-return {
-avg:Math.ceil(total/runs),
-worst:worst
-};
+function monteCarlo(n,m,s,l,re,ri,j,eff){
+    if(n<=0)return{avg:0,worst:0};
+    let runs=10000,total=0,worst=0;
+    for(let r=0;r<runs;r++){
+        let g=0,se=0;
+        while(g<n&&se<1000){
+            se++; let roll=Math.random(),pe=0;
+            if(roll<s)pe=m; else if(roll<s+(1-s)*0.7)pe=m*0.6; else pe=m*0.3;
+            let w=pe*eff*l*re; if(j)w*=0.5; else w*=ri; g+=w;
+        }
+        total+=se; if(se>worst)worst=se;
+    }
+    return{avg:Math.ceil(total/runs),worst:worst};
 }
 
 let selectedTier="ALEPH";
-
-document.querySelectorAll(".tier-buttons button").forEach(btn=>{
-btn.onclick=()=>{
-document.querySelectorAll(".tier-buttons button").forEach(b=>b.classList.remove("active"));
-btn.classList.add("active");
-selectedTier=btn.dataset.tier;
-customMaxPE.value=tierDefault[selectedTier];
-calculate();
-};
-});
-
-document.querySelectorAll("input, select").forEach(el=>{
-el.addEventListener("input",calculate);
-});
+document.querySelectorAll(".tier-buttons button").forEach(btn=>{btn.onclick=()=>{
+    document.querySelectorAll(".tier-buttons button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active"); selectedTier=btn.dataset.tier;
+    document.getElementById("customMaxPE").value={ZAYIN:12,TETH:16,HE:20,WAW:24,ALEPH:33}[selectedTier];
+    calculate();
+};});
+document.querySelectorAll("input, select").forEach(el=>el.addEventListener("input",calculate));
 
 function calculate(){
+    const hod=parseInt(document.getElementById("hodBonus").value), base=parseFloat(document.getElementById("successRate").value);
+    const temp=(parseInt(document.getElementById("tempCurrent").value)||0)+hod;
+    const ts=Math.min(1,base+temp*0.002);
+    const eff = 1 + (temp/100)*0.5;
+    const re=document.getElementById("researchBonus").checked?1.5:1, ri=document.getElementById("riskMode").checked?1.3:1, mpe=parseFloat(document.getElementById("customMaxPE").value)||0;
+    
+    let stats=[{n:"Instinct",s:"Fortitude",c:fortCurrent.value,g:fortGoal.value,b:"fortBox",k:"fort"},{n:"Insight",s:"Prudence",c:prudCurrent.value,g:prudGoal.value,b:"prudBox",k:"prud"},{n:"Attachment",s:"Temperance",c:tempCurrent.value,g:tempGoal.value,b:"tempBox",k:"temp"},{n:"Repression",s:"Justice",c:justCurrent.value,g:justGoal.value,b:"justBox",k:"just"}];
+    let tHtml="", sHtml=`<div class="step-card" style="border-left-color: var(--primary-red);">
+        <span class="step-header">Phase 1: Temperance-Driven Probability</span>
+        Temperance increases work success rate by <span class="highlight">0.2% per point</span>.
+        <div class="formula">Base Success: ${base*100}% | Bonus: ${temp} * 0.002 = ${(temp*0.2).toFixed(1)}%
+Final Success Rate (P): ${base} + ${(temp*0.002).toFixed(3)} = ${(ts*100).toFixed(1)}%</div>
+        Additionally, Temperance provides a <span class="highlight">Work Efficiency</span> multiplier.
+        <div class="formula">Efficiency = 1 + (${temp}/100)*0.5 = ${eff.toFixed(2)}x</div>
+    </div>`;
 
-let success=parseFloat(successRate.value);
-let research=researchBonus.checked?1.5:1;
-let risk=riskMode.checked?1.3:1;
-let maxPE=parseFloat(customMaxPE.value)||0;
-let showWorst=document.getElementById("showWorst").checked;
-
-let stats=[
-{name:"Instinct",stat:"Fortitude",cur:fortCurrent.value,goal:fortGoal.value,box:"fortBox"},
-{name:"Insight",stat:"Prudence",cur:prudCurrent.value,goal:prudGoal.value,box:"prudBox"},
-{name:"Attachment",stat:"Temperance",cur:tempCurrent.value,goal:tempGoal.value,box:"tempBox"},
-{name:"Repression",stat:"Justice",cur:justCurrent.value,goal:justGoal.value,box:"justBox"}
-];
-
-let table="";
-
-stats.forEach(s=>{
-
-let c=parseInt(s.cur)||0;
-let g=parseInt(s.goal)||0;
-
-let level=getLevel(c);
-let levelMod=levelModifier[level][selectedTier];
-let needed=g>c?expNeeded(c,g):0;
-
-let expected=expectedPE(maxPE,success);
-let expPerWork=expected*levelMod*research;
-if(s.name==="Repression") expPerWork*=0.5;
-else expPerWork*=risk;
-
-let worksNeeded=needed>0?Math.ceil(needed/expPerWork):0;
-
-let mc=needed>0
-?monteCarloSessionsDetailed(needed,maxPE,success,levelMod,research,risk,s.name==="Repression")
-:{avg:0,worst:0};
-
-let works=worksNeeded===0?"✓":worksNeeded+" / MC≈"+mc.avg;
-let worstDisplay=(showWorst && worksNeeded!==0)?mc.worst:"-";
-
-document.getElementById(s.box).classList.toggle("success",g<=c);
-
-let danger=(level===1 && selectedTier==="ALEPH")
-?'<span class="warning">DANGER</span>':"Safe";
-
-table+=`<tr>
-<td>${s.name}</td>
-<td>${s.stat}</td>
-<td>${works}</td>
-<td>${worstDisplay}</td>
-<td>${danger}</td>
-</tr>`;
-
-document.getElementById(
-s.stat.toLowerCase().slice(0,4)+"Level"
-).innerText="Level "+roman(level);
-
-});
-
-resultTable.innerHTML=table;
+    stats.forEach(s=>{
+        let c=(parseInt(s.c)||0)+hod, g=parseInt(s.g)||0, lv=getLevel(c), mod=levelModTable[lv][selectedTier], n=g>c?expNeeded(c,g):0;
+        let pG = ts, pN = (1-ts)*0.7, pB = (1-ts)*0.3;
+        let rawApe=(pG*mpe)+(pN*mpe*0.6)+(pB*mpe*0.3);
+        let finalApe = rawApe * eff;
+        let mul=mod*re*(s.n==="Repression"?0.5:ri);
+        let theo=n>0?Math.ceil(n/(finalApe*mul)):0, mc=n>0?monteCarlo(n,mpe,ts,mod,re,ri,s.n==="Repression",eff):{avg:0,worst:0};
+        
+        document.getElementById(s.b).classList.toggle("success",g<=c);
+        document.getElementById(s.k+"Level").innerHTML="Level "+roman(lv)+(hod>0?` (+${hod} Hod)`:"");
+        tHtml+=`<tr><td>${s.n}</td><td>${s.s}</td><td class="highlight">${g<=c?"✓":theo}</td><td>${g<=c?"-":mc.avg}</td><td>${(document.getElementById("showWorst").checked&&g>c)?mc.worst:"-"}</td><td>${(lv===1&&selectedTier==="ALEPH")?'<span class="warning">DANGER</span>':"Safe"}</td></tr>`;
+        
+        if(n>0) {
+            sHtml+=`<div class="step-card">
+                <span class="step-header">Work: ${s.n} (${s.s})</span>
+                <div class="sub-step"><b>1. Calculate Total Experience Needed (Summation)</b>
+                    <div class="formula">Needed EXP = ${getExpFormula(c, g)} = <b>${n.toFixed(1)}</b></div></div>
+                <div class="sub-step"><b>2. Calculate Expected PE-Boxes (Weighted Average)</b>
+                    <div class="formula">Good (${(pG*100).toFixed(1)}%): ${mpe} | Normal (${(pN*100).toFixed(1)}%): ${(mpe*0.6).toFixed(1)} | Bad (${(pB*100).toFixed(1)}%): ${(mpe*0.3).toFixed(1)}
+Raw Avg PE = (${mpe}*${pG.toFixed(3)}) + (${(mpe*0.6).toFixed(1)}*${pN.toFixed(3)}) + (${(mpe*0.3).toFixed(1)}*${pB.toFixed(3)}) = ${rawApe.toFixed(2)}
+Final Avg (incl. Efficiency) = ${rawApe.toFixed(2)} * ${eff.toFixed(2)} = <b>${finalApe.toFixed(2)}</b></div></div>
+                <div class="sub-step"><b>3. Apply Multipliers</b>
+                    <div class="formula">Total Mult = (Mod: ${mod}) * (Research: ${re}) * (${s.n==="Repression"?"Justice: 0.5":"Risk: "+ri}) = <b>${mul.toFixed(2)}x</b></div></div>
+                <div class="sub-step"><b>4. Result</b>
+                    <div class="formula">Sessions = ${n.toFixed(1)} / (${finalApe.toFixed(2)} * ${mul.toFixed(2)}) = <b>${theo} works</b></div></div>
+            </div>`;
+        }
+    });
+    resultTable.innerHTML=tHtml; document.getElementById("stepContent").innerHTML=sHtml;
 }
-
 calculate();
-
 </script>
 </body>
-
 </html>
-
