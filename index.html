@@ -195,8 +195,8 @@ function hexToRgba(hex, alpha) {
 document.querySelectorAll("input, select").forEach(el=>el.addEventListener("input",calculate));
 
 function calculate(){
- // อัปเดต Max PE Box ตาม Tier ที่เลือกอัตโนมัติ (ย้าย logic มาที่นี่เพื่อให้ทำงานร่วมกันได้)
- document.getElementById("customMaxPE").value={ZAYIN:12,TETH:16,HE:20,WAW:24,ALEPH:33}[selectedTier];
+ // Max PE Box can now be changed manually by user
+ // Initial values for reference: ZAYIN:12, TETH:16, HE:20, WAW:24, ALEPH:33
 
  const hod=parseInt(document.getElementById("hodBonus").value), base=parseFloat(document.getElementById("successRate").value);
  const temp=(parseInt(document.getElementById("tempCurrent").value)||0)+hod;
