@@ -110,15 +110,23 @@ function getExpFormula(c, g) {
  if (g - c > 4) return `(1 + ${c}*0.1) + (1 + ${(c+1)}*0.1) + ... + (1 + ${(g-1)}*0.1)`;
  let p = []; for(let i=c; i<g; i++) p.push(`(1 + ${i*0.1})`); return p.join(" + ");
 }
-function monteCarlo(n,m,s,l,re,ri,j,eff){
+function monteCarlo(n,m,s,l,re,ri,j,ls){
+    // eff parameter removed; efficiency only affects success rate elsewhere
  if(n<=0)return{avg:0,worst:0};
+ // level-scale (ls) defaults to 1 if not provided; ensure non-negative
+ ls = (typeof ls === 'number') ? Math.max(0, ls) : 1;
  let runs=10000,total=0,worst=0;
  for(let r=0;r<runs;r++){
  let g=0,se=0;
  while(g<n&&se<1000){
  se++; let roll=Math.random(),pe=0;
  if(roll<s)pe=m; else if(roll<s+(1-s)*0.7)pe=m*0.6; else pe=m*0.3;
- let w=pe*eff*l*re; if(j)w*=0.5; else w*=ri; g+=w;
+ let w = pe * l * re; // efficiency not applied here
+                if(j) w *= 0.5;
+                else w *= ri;
+                // Apply level scaling once per work
+                w *= ls;
+                g += w;
  }
  total+=se; if(se>worst)worst=se;
  }
@@ -204,19 +212,23 @@ function calculate(){
  const eff = 1 + (temp/100)*0.5;
  const re=document.getElementById("researchBonus").checked?1.5:1, ri=document.getElementById("riskMode").checked?1.3:1, mpe=parseFloat(document.getElementById("customMaxPE").value)||0;
  let stats=[{n:"Instinct",s:"Fortitude",c:fortCurrent.value,g:fortGoal.value,b:"fortBox",k:"fort"},{n:"Insight",s:"Prudence",c:prudCurrent.value,g:prudGoal.value,b:"prudBox",k:"prud"},{n:"Attachment",s:"Temperance",c:tempCurrent.value,g:tempGoal.value,b:"tempBox",k:"temp"},{n:"Repression",s:"Justice",c:justCurrent.value,g:justGoal.value,b:"justBox",k:"just"}];
- let tHtml="", sHtml=`<div class="step-card" style="border-left-color: var(--primary-red);"><span class="step-header">Phase 1: Temperance-Driven Probability</span>Temperance increases work success rate by <span class="highlight">0.2% per point</span>.<div class="formula">Base Success: ${base*100}% | Bonus: ${temp} * 0.002 = ${(temp*0.2).toFixed(1)}% Final Success Rate (P): ${base} + ${(temp*0.002).toFixed(3)} = ${(ts*100).toFixed(1)}%</div>Additionally, Temperance provides a <span class="highlight">Work Efficiency</span> multiplier.<div class="formula">Efficiency = 1 + (${temp}/100)*0.5 = ${eff.toFixed(2)}x</div></div>`;
+ let tHtml="", sHtml=`<div class="step-card" style="border-left-color: var(--primary-red);"><span class="step-header">Phase 1: Temperance-Driven Probability</span>Temperance increases work success rate by <span class="highlight">0.2% per point</span>.<div class="formula">Base Success: ${base*100}% | Bonus: ${temp} * 0.002 = ${(temp*0.2).toFixed(1)}% Final Success Rate (P): ${base} + ${(temp*0.002).toFixed(3)} = ${(ts*100).toFixed(1)}%</div>Additionally, Temperance provides a <span class="highlight">Work Efficiency</span> value (impacts success rate only, not EXP).<div class="formula">Efficiency = 1 + (${temp}/100)*0.5 = ${eff.toFixed(2)}x</div></div>`;
  stats.forEach(s=>{
  let c=(parseInt(s.c)||0)+hod, g=parseInt(s.g)||0, lv=getLevel(c), mod=levelModTable[lv][selectedTier], n=g>c?expNeeded(c,g):0;
+ // Level scaling modifier (accounts for soft cap near high stat values)
+ let levelScale = Math.max(0, 1 - (c/150));
  let pG = ts, pN = (1-ts)*0.7, pB = (1-ts)*0.3;
  let rawApe=(pG*mpe)+(pN*mpe*0.6)+(pB*mpe*0.3);
- let finalApe = rawApe * eff;
- let mul=mod*re*(s.n==="Repression"?0.5:ri);
- let theo=n>0?Math.ceil(n/(finalApe*mul)):0, mc=n>0?monteCarlo(n,mpe,ts,mod,re,ri,s.n==="Repression",eff):{avg:0,worst:0};
+ // Efficiency does NOT multiply EXP directly (wiki-aligned logic)
+                let finalApe = rawApe;
+ // include levelScale into total multiplier (affects real EXP per session)
+ let mul=mod*re*(s.n==="Repression"?0.5:ri)*levelScale;
+ let theo=n>0?Math.ceil(n/(finalApe*mul)):0, mc=n>0?monteCarlo(n,mpe,ts,mod,re,ri,s.n==="Repression",levelScale):{avg:0,worst:0};
  document.getElementById(s.b).classList.toggle("success",g<=c);
  document.getElementById(s.k+"Level").innerHTML="Level "+roman(lv)+(hod>0?` (+${hod} Hod)`:"");
  tHtml+=`<tr><td>${s.n}</td><td>${s.s}</td><td class="highlight">${g<=c?"✓":theo}</td><td>${g<=c?"-":mc.avg}</td><td>${(document.getElementById("showWorst").checked&&g>c)?mc.worst:"-"}</td><td>${(lv===1&&selectedTier==="ALEPH")?'<span class="warning">DANGER</span>':"Safe"}</td></tr>`;
  if(n>0) {
- sHtml+=`<div class="step-card"><span class="step-header">Work: ${s.n} (${s.s})</span><div class="sub-step"><b>1. Calculate Total Experience Needed (Summation)</b><div class="formula">Needed EXP = ${getExpFormula(c, g)} = <b>${n.toFixed(1)}</b></div></div><div class="sub-step"><b>2. Calculate Expected PE-Boxes (Weighted Average)</b><div class="formula">Good (${(pG*100).toFixed(1)}%): ${mpe} | Normal (${(mpe*0.6).toFixed(1)}%): ${(pN*100).toFixed(1)} | Bad (${(mpe*0.3).toFixed(1)}%): ${(pB*100).toFixed(1)} Raw Avg PE = (${mpe}*${pG.toFixed(3)}) + (${(mpe*0.6).toFixed(1)}*${pN.toFixed(3)}) + (${(mpe*0.3).toFixed(1)}*${pB.toFixed(3)}) = ${rawApe.toFixed(2)} Final Avg (incl. Efficiency) = ${rawApe.toFixed(2)} * ${eff.toFixed(2)} = <b>${finalApe.toFixed(2)}</b></div></div><div class="sub-step"><b>3. Apply Multipliers</b><div class="formula">Total Mult = (Mod: ${mod}) * (Research: ${re}) * (${s.n==="Repression"?"Justice: 0.5":"Risk: "+ri}) = <b>${mul.toFixed(2)}x</b></div></div><div class="sub-step"><b>4. Result</b><div class="formula">Sessions = ${n.toFixed(1)} / (${finalApe.toFixed(2)} * ${mul.toFixed(2)}) = <b>${theo} works</b></div></div></div>`;
+ sHtml+=`<div class="step-card"><span class="step-header">Work: ${s.n} (${s.s})</span><div class="sub-step"><b>1. Calculate Total Experience Needed (Summation)</b><div class="formula">Needed EXP = ${getExpFormula(c, g)} = <b>${n.toFixed(1)}</b></div></div><div class="sub-step"><b>2. Calculate Expected PE-Boxes (Weighted Average)</b><div class="formula">Good (${(pG*100).toFixed(1)}%): ${mpe} | Normal (${(mpe*0.6).toFixed(1)}%): ${(pN*100).toFixed(1)} | Bad (${(mpe*0.3).toFixed(1)}%): ${(pB*100).toFixed(1)} Raw Avg PE = (${mpe}*${pG.toFixed(3)}) + (${(mpe*0.6).toFixed(1)}*${pN.toFixed(3)}) + (${(mpe*0.3).toFixed(1)}*${pB.toFixed(3)}) = ${rawApe.toFixed(2)} Final Avg PE (no direct Efficiency multiplier) = ${rawApe.toFixed(2)} = <b>${finalApe.toFixed(2)}</b></div></div><div class="sub-step"><b>3. Apply Multipliers</b><div class="formula">Total Mult = (Mod: ${mod}) * (Research: ${re}) * (${s.n==="Repression"?"Justice: 0.5":"Risk: "+ri}) * (LevelScale: ${levelScale.toFixed(3)}) = <b>${mul.toFixed(2)}x</b></div></div><div class="sub-step"><b>4. Result</b><div class="formula">Sessions = ${n.toFixed(1)} / (${finalApe.toFixed(2)} * ${mul.toFixed(2)}) = <b>${theo} works</b></div></div></div>`;
  }
  });
  resultTable.innerHTML=tHtml; document.getElementById("stepContent").innerHTML=sHtml;
